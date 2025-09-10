@@ -1,0 +1,20 @@
+{
+  "frame": {
+    "name": "Brander+",
+    "version": "1",
+    "iconUrl": "https://raw.githubusercontent.com/Daevitt/FarcasterMiniApp/refs/heads/main/logos/200x200.png",
+    "homeUrl": "https://v0farcaster-brander7.vercel.app/",
+    "imageUrl": "https://v0farcaster-brander7.vercel.app/image.png",
+    "splashImageUrl": "https://raw.githubusercontent.com/Daevitt/FarcasterMiniApp/refs/heads/main/logos/1.jpg",
+    "splashBackgroundColor": "#089bff",
+    "webhookUrl": "https://v0farcaster-brander7.vercel.app/api/webhook",
+    "subtitle": "Generate Real Engagement",
+    "description": "We are the future of engagement on web3, taking advantage of the power in live streams.",
+    "primaryCategory": "social"
+  },
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  }
+}
