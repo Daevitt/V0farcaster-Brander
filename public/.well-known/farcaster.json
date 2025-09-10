@@ -13,8 +13,8 @@
     "primaryCategory": "social"
   },
   "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
+    "header": "eyJmaWQiOjEzMTMyOTcsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgxRjVjOTIxNUNCYmRmNjAwQzUwOGIxRkEzYjYwNTE4OEFGQzQyMmFGIn0",
+    "payload": "eyJkb21haW4iOiJ2MGZhcmNhc3Rlci1icmFuZGVyNy52ZXJjZWwuYXBwIn0",
+    "signature": "MHhlMzE0NTM0YWE2MThhZWMwZTkyMDc5YWIxM2QwNTQ5NWQ0MjM5NWFjNTM3OGIwODAxZjMwYjVmZmZmNTY0ZTczNjNjMzg0YzU5ZTEwZmZkY2FmZWNhMjMxNmVhYjQyMzZjN2NkZWViMmU4ZmYyYjAwMmY0NzZmODcwMjE1YTFiYTFi"
   }
 }
