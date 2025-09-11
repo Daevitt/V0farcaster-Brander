@@ -7,20 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { Wallet, Trophy, Users, ArrowRight, Star, Plus, BarChart3, Gift, Settings } from "lucide-react"
 import { CreateListModal } from "@/components/create-list-modal"
 import { useRouter } from "next/navigation"
-import { sdk } from "@farcaster/miniapp-sdk";
+import { FarcasterAuth, type FarcasterUser } from "@/lib/farcaster-auth"
 
 declare global {
   interface Window {
     ethereum?: any
   }
-}
-
-interface FarcasterUser {
-  fid: number
-  displayName: string
-  username: string
-  pfpUrl: string
-  walletAddress?: string
 }
 
 export default function FarcasterMiniapp() {
@@ -30,43 +22,29 @@ export default function FarcasterMiniapp() {
   const [showCreateList, setShowCreateList] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
   const router = useRouter()
+  const farcasterAuth = FarcasterAuth.getInstance()
 
-  const isAdmin = (fid: number) => fid === 12345 // Replace with real admin list
-  const isSuperAdmin = (fid: number) => fid === 12345 // Replace with real super admin list
-  
+  const isAdmin = (fid: number) => farcasterAuth.isAdmin(fid)
+  const isSuperAdmin = (fid: number) => farcasterAuth.isSuperAdmin(fid)
+
   useEffect(() => {
-    const init = async () => {
-      try {
-        await sdk.actions.ready(); // quita el splash
-      } catch (err) {
-        console.error("Error calling sdk.actions.ready()", err);
-      }
-    };
-    init();
-  }, []);
-  
-  useEffect(() => {
-    const savedUser = localStorage.getItem("farcaster_user")
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const currentUser = farcasterAuth.getCurrentUser()
+    if (currentUser) {
+      setUser(currentUser)
     }
+
+    const unsubscribe = farcasterAuth.onAuthStateChanged((user) => {
+      setUser(user)
+    })
+
+    return unsubscribe
   }, [])
 
   const connectFarcaster = async () => {
     setIsConnecting(true)
     try {
-      if (typeof window !== "undefined") {
-        const mockUser: FarcasterUser = {
-          fid: 12345,
-          displayName: "Daevitt",
-          username: "daevitt",
-          pfpUrl: "/images/daevitt-profile.png",
-          walletAddress: undefined,
-        }
-
-        setUser(mockUser)
-        localStorage.setItem("farcaster_user", JSON.stringify(mockUser))
-      }
+      const authenticatedUser = await farcasterAuth.signIn()
+      setUser(authenticatedUser)
     } catch (error) {
       console.error("Farcaster connection failed:", error)
     } finally {
@@ -182,22 +160,27 @@ export default function FarcasterMiniapp() {
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <img
-                  src={user.pfpUrl || "/placeholder.svg"}
-                  alt={user.displayName}
-                  className="w-8 h-8 rounded-full border-2 border-purple-400"
-                />
-                <span className="text-white font-medium hidden sm:block">{user.displayName}</span>
+                <div className="w-10 h-10 flex-shrink-0">
+                  <img
+                    src={user.pfpUrl || "/placeholder.svg"}
+                    alt={user.displayName}
+                    className="w-10 h-10 rounded-full border-2 border-purple-400 object-cover"
+                  />
+                </div>
+                <div className="hidden sm:flex flex-col min-w-0">
+                  <span className="text-white font-medium text-sm truncate">{user.displayName}</span>
+                  <span className="text-purple-300 text-xs truncate">@{user.username}</span>
+                </div>
               </div>
 
               <Button
                 onClick={handleDashboard}
                 variant="outline"
                 size="sm"
-                className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
+                className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 bg-transparent flex-shrink-0"
               >
-                <Settings className="w-4 h-4 mr-2" />
-                Dashboard
+                <Settings className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Button>
             </div>
           </div>
@@ -214,21 +197,21 @@ export default function FarcasterMiniapp() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto">
           <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                Join Challenges
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                <span className="truncate">Join Challenges</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-gray-300 text-sm">
                 Participate in active reward lists and compete for prizes
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 onClick={() => router.push("/actions")}
-                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium"
+                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium text-sm"
               >
                 Browse Active Lists
               </Button>
@@ -236,17 +219,19 @@ export default function FarcasterMiniapp() {
           </Card>
 
           <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-green-400" />
-                Leaderboards
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <BarChart3 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <span className="truncate">Leaderboards</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">See rankings and compete with other users</CardDescription>
+              <CardDescription className="text-gray-300 text-sm">
+                See rankings and compete with other users
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 onClick={() => router.push("/leaderboard")}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium text-sm"
               >
                 View Rankings
               </Button>
@@ -254,17 +239,19 @@ export default function FarcasterMiniapp() {
           </Card>
 
           <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Gift className="w-5 h-5 text-emerald-400" />
-                My Rewards
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Gift className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <span className="truncate">My Rewards</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">View and claim your earned tokens and NFTs</CardDescription>
+              <CardDescription className="text-gray-300 text-sm">
+                View and claim your earned tokens and NFTs
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 onClick={() => router.push("/rewards")}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium"
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium text-sm"
               >
                 View Rewards
               </Button>
@@ -272,43 +259,43 @@ export default function FarcasterMiniapp() {
           </Card>
 
           <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Create List
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Users className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                <span className="truncate">Create List</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-gray-300 text-sm">
                 Launch your own reward campaign and distribute tokens/NFTs
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 onClick={() => setShowCreateList(true)}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-sm"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Create New List
+                <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Create New List</span>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-purple-400" />
-                Admin Dashboard
+          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 sm:col-span-2 lg:col-span-1">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Settings className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                <span className="truncate">Admin Dashboard</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-gray-300 text-sm">
                 Manage your lists, view analytics and track performance
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 onClick={() => router.push("/admin")}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium"
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm"
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                View Dashboard
+                <BarChart3 className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">View Dashboard</span>
               </Button>
             </CardContent>
           </Card>
@@ -409,10 +396,9 @@ export default function FarcasterMiniapp() {
 
               <Button
                 onClick={() => {
-                  setUser(null)
+                  farcasterAuth.signOut()
                   setWalletConnected(false)
                   setShowDashboard(false)
-                  localStorage.removeItem("farcaster_user")
                 }}
                 variant="outline"
                 className="w-full border-red-500/50 text-red-300 hover:bg-red-500/20"
@@ -428,7 +414,7 @@ export default function FarcasterMiniapp() {
       <CreateListModal
         isOpen={showCreateList}
         onClose={() => setShowCreateList(false)}
-        userWallet={user?.walletAddress}
+        userWallet={user?.verifications?.[0]}
         isWalletConnected={walletConnected}
       />
     </div>

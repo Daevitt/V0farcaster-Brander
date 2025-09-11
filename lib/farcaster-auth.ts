@@ -26,44 +26,22 @@ export class FarcasterAuth {
 
   async signIn(): Promise<FarcasterUser> {
     try {
-      // In a real implementation, this would use Farcaster Connect SDK
-      // For now, we'll simulate the authentication flow
-
-      // Check if running in browser and has Farcaster app installed
+      // In a real implementation, this would use @farcaster/auth-kit or similar
       if (typeof window !== "undefined") {
-        // Simulate Farcaster Connect flow
-        const response = await this.simulateFarcasterConnect()
+        // Check if Farcaster app is available
+        if (!window.parent || window.parent === window) {
+          throw new Error("This app must be opened within Farcaster")
+        }
 
-        this.user = response
-        this.notifyListeners(this.user)
-
-        // Store in localStorage for persistence
-        localStorage.setItem("farcaster_user", JSON.stringify(this.user))
-
-        return this.user
+        // Real Farcaster authentication would happen here
+        // For now, throw error to indicate real auth is needed
+        throw new Error("Real Farcaster authentication not implemented. Please integrate @farcaster/auth-kit")
       }
 
       throw new Error("Farcaster authentication not available")
     } catch (error) {
       console.error("Farcaster sign in failed:", error)
       throw error
-    }
-  }
-
-  private async simulateFarcasterConnect(): Promise<FarcasterUser> {
-    // Simulate API call to Farcaster
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // In real implementation, this would come from Farcaster API
-    return {
-      fid: 12345,
-      username: "cryptobuilder",
-      displayName: "Crypto Builder",
-      pfpUrl: "https://i.imgur.com/placeholder-avatar.jpg",
-      bio: "Building the future of Web3 social",
-      followerCount: 1250,
-      followingCount: 890,
-      verifications: ["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d4d4"],
     }
   }
 
@@ -92,11 +70,7 @@ export class FarcasterAuth {
 
   onAuthStateChanged(callback: (user: FarcasterUser | null) => void): () => void {
     this.listeners.push(callback)
-
-    // Call immediately with current state
     callback(this.getCurrentUser())
-
-    // Return unsubscribe function
     return () => {
       const index = this.listeners.indexOf(callback)
       if (index > -1) {
@@ -109,17 +83,20 @@ export class FarcasterAuth {
     this.listeners.forEach((callback) => callback(user))
   }
 
-  // Check if user is admin (app creator or added admin)
   isAdmin(fid: number): boolean {
-    const APP_CREATOR_FID = 12345 // Your FID as app creator
+    // In production, this should check against a database or API
+    const APP_CREATOR_FID = process.env.NEXT_PUBLIC_APP_CREATOR_FID
+      ? Number.parseInt(process.env.NEXT_PUBLIC_APP_CREATOR_FID)
+      : null
     const adminFids = this.getAdminFids()
-    return fid === APP_CREATOR_FID || adminFids.includes(fid)
+    return (APP_CREATOR_FID && fid === APP_CREATOR_FID) || adminFids.includes(fid)
   }
 
-  // Check if user is super admin (app creator only)
   isSuperAdmin(fid: number): boolean {
-    const APP_CREATOR_FID = 12345 // Your FID as app creator
-    return fid === APP_CREATOR_FID
+    const APP_CREATOR_FID = process.env.NEXT_PUBLIC_APP_CREATOR_FID
+      ? Number.parseInt(process.env.NEXT_PUBLIC_APP_CREATOR_FID)
+      : null
+    return APP_CREATOR_FID && fid === APP_CREATOR_FID
   }
 
   private getAdminFids(): number[] {

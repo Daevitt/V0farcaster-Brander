@@ -4,15 +4,32 @@ import { RewardDistribution } from "@/components/reward-distribution"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Gift } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { FarcasterAuth, type FarcasterUser } from "@/lib/farcaster-auth"
 
 export default function RewardsPage() {
   const router = useRouter()
+  const [user, setUser] = useState<FarcasterUser | null>(null)
+  const farcasterAuth = FarcasterAuth.getInstance()
 
-  // Mock user data - in real app this would come from authentication
-  const mockUser = {
-    fid: "12345",
-    username: "cryptouser",
-    displayName: "Crypto User",
+  useEffect(() => {
+    const currentUser = farcasterAuth.getCurrentUser()
+    if (!currentUser) {
+      router.push("/")
+      return
+    }
+    setUser(currentUser)
+  }, [router, farcasterAuth])
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -49,7 +66,7 @@ export default function RewardsPage() {
 
       {/* Main Content */}
       <main className="relative z-10 container mx-auto px-4 py-8">
-        <RewardDistribution userFid={mockUser.fid} username={mockUser.username} />
+        <RewardDistribution userFid={user.fid.toString()} username={user.username} />
       </main>
     </div>
   )
