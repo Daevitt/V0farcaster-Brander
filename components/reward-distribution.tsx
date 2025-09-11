@@ -1,457 +1,432 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import {
-  Gift,
-  Coins,
-  Trophy,
-  Clock,
-  CheckCircle,
-  ExternalLink,
-  Copy,
-  Share2,
-  Sparkles,
-  DollarSign,
-  ImageIcon,
-} from "lucide-react"
-import { ListManagementService, type RewardConfig } from "@/lib/list-management"
+import { Coins, Trophy, Gift, ExternalLink, Download, Clock, CheckCircle, Wallet, Star } from "lucide-react"
 
 interface RewardDistributionProps {
   userFid: string
   username: string
 }
 
-interface PendingReward {
+interface TokenReward {
   id: string
-  listId: string
-  listName: string
-  reward: RewardConfig
-  position: number
+  tokenSymbol: string
+  amount: number
+  usdValue: number
+  status: "pending" | "claimable" | "claimed"
+  earnedFrom: string
   earnedAt: Date
-  status: "pending" | "ready" | "claimed"
-  transactionHash?: string
+  claimableAt?: Date
+  txHash?: string
 }
 
-function RewardDistribution({ userFid, username }: RewardDistributionProps) {
-  const [pendingRewards, setPendingRewards] = useState<PendingReward[]>([])
-  const [claimedRewards, setClaimedRewards] = useState<PendingReward[]>([])
-  const [totalValue, setTotalValue] = useState({ tokens: 0, nfts: 0 })
-  const [isProcessingClaim, setIsProcessingClaim] = useState<Set<string>>(new Set())
+interface NFTReward {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  status: "pending" | "claimable" | "claimed"
+  earnedFrom: string
+  earnedAt: Date
+  claimableAt?: Date
+  tokenId?: string
+  contractAddress?: string
+}
 
-  const listService = ListManagementService.getInstance()
+export function RewardDistribution({ userFid, username }: RewardDistributionProps) {
+  const [tokenRewards, setTokenRewards] = useState<TokenReward[]>([])
+  const [nftRewards, setNFTRewards] = useState<NFTReward[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [claimingReward, setClaimingReward] = useState<string | null>(null)
 
   useEffect(() => {
-    loadUserRewards()
-    const interval = setInterval(loadUserRewards, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
+    loadRewards()
   }, [userFid])
 
-  const loadUserRewards = () => {
-    const activeLists = listService.getActiveLists()
-    const pending: PendingReward[] = []
-    const claimed: PendingReward[] = []
-    let tokenValue = 0
-    let nftCount = 0
+  const loadRewards = async () => {
+    setIsLoading(true)
 
-    activeLists.forEach((list) => {
-      const userScore = listService.getUserScore(list.id, userFid)
-      if (userScore && userScore.rewards.length > 0) {
-        userScore.rewards.forEach((reward) => {
-          const rewardItem: PendingReward = {
-            id: `${list.id}-${reward.position}`,
-            listId: list.id,
-            listName: list.name,
-            reward,
-            position: userScore.position,
-            earnedAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random time in last 24h
-            status: Math.random() > 0.3 ? "ready" : "pending", // 70% ready for demo
-          }
+    // Mock data - in real app this would come from API
+    const mockTokenRewards: TokenReward[] = [
+      {
+        id: "token-1",
+        tokenSymbol: "DEGEN",
+        amount: 1000,
+        usdValue: 25.5,
+        status: "claimable",
+        earnedFrom: "Social Media Challenge #1",
+        earnedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        claimableAt: new Date(),
+      },
+      {
+        id: "token-2",
+        tokenSymbol: "BPLUS",
+        amount: 500,
+        usdValue: 12.75,
+        status: "claimed",
+        earnedFrom: "Weekly Leaderboard Winner",
+        earnedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        txHash: "0x1234567890abcdef",
+      },
+      {
+        id: "token-3",
+        tokenSymbol: "DEGEN",
+        amount: 750,
+        usdValue: 19.13,
+        status: "pending",
+        earnedFrom: "Engagement Campaign #3",
+        earnedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        claimableAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      },
+    ]
 
-          if (Math.random() > 0.7) {
-            // 30% already claimed for demo
-            rewardItem.status = "claimed"
-            rewardItem.transactionHash = "0x" + Math.random().toString(16).substr(2, 64)
-            claimed.push(rewardItem)
-          } else {
-            pending.push(rewardItem)
-          }
+    const mockNFTRewards: NFTReward[] = [
+      {
+        id: "nft-1",
+        name: "Farcaster OG Badge",
+        description: "Exclusive badge for early Farcaster adopters",
+        imageUrl: "/farcaster-badge-nft.jpg",
+        status: "claimable",
+        earnedFrom: "Complete 10 Social Actions",
+        earnedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        claimableAt: new Date(),
+      },
+      {
+        id: "nft-2",
+        name: "Social Butterfly Trophy",
+        description: "Awarded for exceptional social engagement",
+        imageUrl: "/trophy-butterfly-nft.jpg",
+        status: "claimed",
+        earnedFrom: "Monthly Top Performer",
+        earnedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        tokenId: "42",
+        contractAddress: "0xabcdef1234567890",
+      },
+    ]
 
-          // Calculate total value
-          if (reward.type === "token" && reward.amount) {
-            tokenValue += reward.amount
-          } else if (reward.type === "nft") {
-            nftCount++
-          }
-        })
+    setTokenRewards(mockTokenRewards)
+    setNFTRewards(mockNFTRewards)
+    setIsLoading(false)
+  }
+
+  const claimReward = async (rewardId: string, type: "token" | "nft") => {
+    setClaimingReward(rewardId)
+
+    try {
+      // Simulate claiming process
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      if (type === "token") {
+        setTokenRewards((prev) =>
+          prev.map((reward) =>
+            reward.id === rewardId
+              ? { ...reward, status: "claimed", txHash: "0x" + Math.random().toString(16).substr(2, 8) }
+              : reward,
+          ),
+        )
+      } else {
+        setNFTRewards((prev) =>
+          prev.map((reward) =>
+            reward.id === rewardId
+              ? {
+                  ...reward,
+                  status: "claimed",
+                  tokenId: Math.floor(Math.random() * 1000).toString(),
+                  contractAddress: "0x" + Math.random().toString(16).substr(2, 8),
+                }
+              : reward,
+          ),
+        )
       }
-    })
-
-    setPendingRewards(pending)
-    setClaimedRewards(claimed)
-    setTotalValue({ tokens: tokenValue, nfts: nftCount })
-  }
-
-  const claimReward = async (rewardId: string) => {
-    setIsProcessingClaim((prev) => new Set([...prev, rewardId]))
-
-    // Simulate claim processing
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    setPendingRewards((prev) =>
-      prev.map((reward) =>
-        reward.id === rewardId
-          ? {
-              ...reward,
-              status: "claimed",
-              transactionHash: "0x" + Math.random().toString(16).substr(2, 64),
-            }
-          : reward,
-      ),
-    )
-
-    // Move to claimed rewards
-    const claimedReward = pendingRewards.find((r) => r.id === rewardId)
-    if (claimedReward) {
-      setClaimedRewards((prev) => [
-        ...prev,
-        { ...claimedReward, status: "claimed", transactionHash: "0x" + Math.random().toString(16).substr(2, 64) },
-      ])
-      setPendingRewards((prev) => prev.filter((r) => r.id !== rewardId))
-    }
-
-    setIsProcessingClaim((prev) => {
-      const newSet = new Set(prev)
-      newSet.delete(rewardId)
-      return newSet
-    })
-
-    // Show success notification
-    showNotification("Reward claimed successfully!", "success")
-  }
-
-  const shareReward = (reward: PendingReward) => {
-    const shareText = `Just earned ${
-      reward.reward.type === "token"
-        ? `${reward.reward.amount} ${reward.reward.tokenSymbol} tokens`
-        : `${reward.reward.nftName} NFT`
-    } by ranking #${reward.position} in "${reward.listName}" on Farcaster Rewards! 🏆`
-
-    if (navigator.share) {
-      navigator.share({
-        title: "Farcaster Rewards Achievement",
-        text: shareText,
-        url: window.location.origin,
-      })
-    } else {
-      navigator.clipboard.writeText(shareText)
-      showNotification("Achievement copied to clipboard!", "success")
+    } catch (error) {
+      console.error("Failed to claim reward:", error)
+    } finally {
+      setClaimingReward(null)
     }
   }
 
-  const copyTransactionHash = (hash: string) => {
-    navigator.clipboard.writeText(hash)
-    showNotification("Transaction hash copied!", "success")
-  }
-
-  const showNotification = (message: string, type: "success" | "error" | "info") => {
-    console.log(`[${type.toUpperCase()}] ${message}`)
-  }
-
-  const getRewardIcon = (reward: RewardConfig) => {
-    return reward.type === "token" ? (
-      <Coins className="w-6 h-6 text-yellow-400" />
-    ) : (
-      <ImageIcon className="w-6 h-6 text-purple-400" />
-    )
-  }
-
-  const getStatusBadge = (status: PendingReward["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
-        return (
-          <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending
-          </Badge>
-        )
-      case "ready":
-        return (
-          <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/50">
-            <Gift className="w-3 h-3 mr-1" />
-            Ready
-          </Badge>
-        )
+      case "claimable":
+        return "bg-green-500/20 text-green-300 border-green-500/50"
       case "claimed":
-        return (
-          <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/50">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Claimed
-          </Badge>
-        )
+        return "bg-blue-500/20 text-blue-300 border-blue-500/50"
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
+      default:
+        return "bg-gray-500/20 text-gray-300 border-gray-500/50"
     }
   }
 
-  const RewardCard = ({ reward, showClaimButton = true }: { reward: PendingReward; showClaimButton?: boolean }) => (
-    <Card className="bg-black/30 border-purple-500/20 hover:border-purple-400/40 transition-all duration-200">
-      <CardContent className="p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-            {getRewardIcon(reward.reward)}
-          </div>
+  const totalTokenValue = tokenRewards
+    .filter((reward) => reward.status === "claimed")
+    .reduce((sum, reward) => sum + reward.usdValue, 0)
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-white font-semibold">
-                {reward.reward.type === "token"
-                  ? `${reward.reward.amount} ${reward.reward.tokenSymbol}`
-                  : reward.reward.nftName}
-              </h3>
-              {getStatusBadge(reward.status)}
-            </div>
+  const claimableTokenValue = tokenRewards
+    .filter((reward) => reward.status === "claimable")
+    .reduce((sum, reward) => sum + reward.usdValue, 0)
 
-            <p className="text-gray-400 text-sm mb-2">{reward.listName}</p>
-
-            <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
-              <div className="flex items-center gap-1">
-                <Trophy className="w-3 h-3" />
-                Position #{reward.position}
-              </div>
-              <div>Earned {reward.earnedAt.toLocaleDateString()}</div>
-            </div>
-
-            {reward.reward.type === "nft" && reward.reward.nftUrl && (
-              <div className="mb-3">
-                <img
-                  src={`/nft-.jpg?height=80&width=80&query=nft-${reward.reward.nftName}`}
-                  alt={reward.reward.nftName}
-                  className="w-20 h-20 rounded-lg border border-purple-500/30"
-                />
-              </div>
-            )}
-
-            {reward.transactionHash && (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs text-gray-400">TX:</span>
-                <code className="text-xs text-blue-400 font-mono">
-                  {reward.transactionHash.slice(0, 10)}...{reward.transactionHash.slice(-8)}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyTransactionHash(reward.transactionHash!)}
-                  className="p-1 h-auto text-gray-400 hover:text-white"
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              {showClaimButton && reward.status === "ready" && (
-                <Button
-                  onClick={() => claimReward(reward.id)}
-                  disabled={isProcessingClaim.has(reward.id)}
-                  size="sm"
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  {isProcessingClaim.has(reward.id) ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Claiming...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <Gift className="w-3 h-3" />
-                      Claim
-                    </div>
-                  )}
-                </Button>
-              )}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => shareReward(reward)}
-                className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
-              >
-                <Share2 className="w-3 h-3 mr-1" />
-                Share
-              </Button>
-
-              {reward.transactionHash && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`https://etherscan.io/tx/${reward.transactionHash}`, "_blank")}
-                  className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
-          </div>
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="bg-black/40 backdrop-blur-xl border-purple-500/20">
+              <CardContent className="p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+                  <div className="h-8 bg-gray-600 rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </CardContent>
-    </Card>
-  )
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Header */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-8">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-          <CardContent className="p-4 text-center">
-            <Sparkles className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
-            <div className="text-xl font-bold text-white">{pendingRewards.length}</div>
-            <div className="text-xs text-gray-400">Pending Rewards</div>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Coins className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-2xl font-bold text-white">${totalTokenValue.toFixed(2)}</div>
+            <div className="text-sm text-gray-400">Total Claimed</div>
           </CardContent>
         </Card>
 
         <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-          <CardContent className="p-4 text-center">
-            <CheckCircle className="w-6 h-6 mx-auto mb-2 text-green-400" />
-            <div className="text-xl font-bold text-white">{claimedRewards.length}</div>
-            <div className="text-xs text-gray-400">Claimed Rewards</div>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-2xl font-bold text-white">${claimableTokenValue.toFixed(2)}</div>
+            <div className="text-sm text-gray-400">Ready to Claim</div>
           </CardContent>
         </Card>
 
         <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-          <CardContent className="p-4 text-center">
-            <DollarSign className="w-6 h-6 mx-auto mb-2 text-green-400" />
-            <div className="text-xl font-bold text-white">{totalValue.tokens.toLocaleString()}</div>
-            <div className="text-xs text-gray-400">Total Tokens</div>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-2xl font-bold text-white">{nftRewards.length}</div>
+            <div className="text-sm text-gray-400">NFTs Earned</div>
           </CardContent>
         </Card>
 
         <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-          <CardContent className="p-4 text-center">
-            <ImageIcon className="w-6 h-6 mx-auto mb-2 text-purple-400" />
-            <div className="text-xl font-bold text-white">{totalValue.nfts}</div>
-            <div className="text-xs text-gray-400">Total NFTs</div>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Star className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-2xl font-bold text-white">{tokenRewards.length + nftRewards.length}</div>
+            <div className="text-sm text-gray-400">Total Rewards</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Rewards Tabs */}
-      <Tabs defaultValue="pending" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-black/40 border border-purple-500/20">
-          <TabsTrigger
-            value="pending"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white"
-          >
-            <Gift className="w-4 h-4 mr-2" />
-            Pending ({pendingRewards.length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="claimed"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Claimed ({claimedRewards.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pending" className="space-y-4">
-          {pendingRewards.length > 0 ? (
-            <>
-              {/* Ready to Claim */}
-              {pendingRewards.filter((r) => r.status === "ready").length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Gift className="w-5 h-5 text-green-400" />
-                    Ready to Claim ({pendingRewards.filter((r) => r.status === "ready").length})
-                  </h3>
-                  {pendingRewards
-                    .filter((r) => r.status === "ready")
-                    .map((reward) => (
-                      <RewardCard key={reward.id} reward={reward} />
-                    ))}
+      {/* Token Rewards */}
+      <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Coins className="w-5 h-5 text-green-400" />
+            Token Rewards
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {tokenRewards.map((reward) => (
+            <div
+              key={reward.id}
+              className="flex items-center justify-between p-4 bg-black/30 rounded-lg border border-purple-500/10"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <Coins className="w-6 h-6 text-white" />
                 </div>
-              )}
 
-              {/* Pending Verification */}
-              {pendingRewards.filter((r) => r.status === "pending").length > 0 && (
-                <div className="space-y-3">
-                  {pendingRewards.filter((r) => r.status === "ready").length > 0 && (
-                    <Separator className="bg-purple-500/20" />
-                  )}
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-yellow-400" />
-                    Pending Verification ({pendingRewards.filter((r) => r.status === "pending").length})
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    These rewards are being verified. They will be available to claim once verification is complete.
-                  </p>
-                  {pendingRewards
-                    .filter((r) => r.status === "pending")
-                    .map((reward) => (
-                      <RewardCard key={reward.id} reward={reward} showClaimButton={false} />
-                    ))}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-white font-medium">
+                      {reward.amount.toLocaleString()} {reward.tokenSymbol}
+                    </h4>
+                    <Badge variant="secondary" className={getStatusColor(reward.status)}>
+                      {reward.status}
+                    </Badge>
+                  </div>
+                  <p className="text-gray-400 text-sm">{reward.earnedFrom}</p>
+                  <p className="text-green-400 text-sm">${reward.usdValue.toFixed(2)} USD</p>
                 </div>
-              )}
-            </>
-          ) : (
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardContent className="p-12 text-center">
-                <Gift className="w-16 h-16 mx-auto mb-4 text-gray-400 opacity-50" />
-                <h3 className="text-xl font-semibold text-white mb-2">No Pending Rewards</h3>
-                <p className="text-gray-400">Complete actions and climb leaderboards to earn tokens and NFTs!</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="claimed" className="space-y-4">
-          {claimedRewards.length > 0 ? (
-            <div className="space-y-3">
-              {claimedRewards.map((reward) => (
-                <RewardCard key={reward.id} reward={reward} showClaimButton={false} />
-              ))}
-            </div>
-          ) : (
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardContent className="p-12 text-center">
-                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400 opacity-50" />
-                <h3 className="text-xl font-semibold text-white mb-2">No Claimed Rewards Yet</h3>
-                <p className="text-gray-400">Your claimed rewards will appear here once you start earning them.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Claim All Button */}
-      {pendingRewards.filter((r) => r.status === "ready").length > 1 && (
-        <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-semibold">Claim All Ready Rewards</h3>
-                <p className="text-gray-400 text-sm">
-                  Claim {pendingRewards.filter((r) => r.status === "ready").length} rewards in one transaction
-                </p>
               </div>
-              <Button
-                onClick={() => {
-                  pendingRewards.filter((r) => r.status === "ready").forEach((reward) => claimReward(reward.id))
-                }}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              >
-                <Gift className="w-4 h-4 mr-2" />
-                Claim All
-              </Button>
+
+              <div className="flex items-center gap-3">
+                {reward.status === "pending" && reward.claimableAt && (
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-yellow-400">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs">Claimable {reward.claimableAt.toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                {reward.status === "claimed" && reward.txHash && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 bg-transparent"
+                    onClick={() => window.open(`https://etherscan.io/tx/${reward.txHash}`, "_blank")}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    View TX
+                  </Button>
+                )}
+
+                {reward.status === "claimable" && (
+                  <Button
+                    onClick={() => claimReward(reward.id, "token")}
+                    disabled={claimingReward === reward.id}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    {claimingReward === reward.id ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Claiming...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Wallet className="w-3 h-3" />
+                        Claim
+                      </div>
+                    )}
+                  </Button>
+                )}
+
+                {reward.status === "claimed" && (
+                  <div className="flex items-center gap-1 text-green-400">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm">Claimed</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ))}
+
+          {tokenRewards.length === 0 && (
+            <div className="text-center py-8">
+              <Coins className="w-16 h-16 mx-auto mb-4 text-gray-400 opacity-50" />
+              <h3 className="text-lg font-semibold text-white mb-2">No Token Rewards Yet</h3>
+              <p className="text-gray-400">Complete actions to start earning token rewards!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* NFT Rewards */}
+      <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-purple-400" />
+            NFT Rewards
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {nftRewards.map((nft) => (
+              <Card key={nft.id} className="bg-black/30 border-purple-500/10 overflow-hidden">
+                <div className="aspect-square relative">
+                  <img src={nft.imageUrl || "/placeholder.svg"} alt={nft.name} className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="secondary" className={getStatusColor(nft.status)}>
+                      {nft.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <CardContent className="p-4">
+                  <h4 className="text-white font-medium mb-1">{nft.name}</h4>
+                  <p className="text-gray-400 text-sm mb-2">{nft.description}</p>
+                  <p className="text-purple-400 text-xs mb-3">{nft.earnedFrom}</p>
+
+                  <Separator className="bg-purple-500/20 mb-3" />
+
+                  <div className="flex justify-between items-center">
+                    {nft.status === "claimable" && (
+                      <Button
+                        onClick={() => claimReward(nft.id, "nft")}
+                        disabled={claimingReward === nft.id}
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      >
+                        {claimingReward === nft.id ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Minting...
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Download className="w-3 h-3" />
+                            Mint NFT
+                          </div>
+                        )}
+                      </Button>
+                    )}
+
+                    {nft.status === "claimed" && (
+                      <div className="w-full space-y-2">
+                        <div className="flex items-center justify-center gap-1 text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-sm">Minted</span>
+                        </div>
+                        {nft.tokenId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-blue-500/50 text-blue-300 hover:bg-blue-500/20 bg-transparent"
+                            onClick={() =>
+                              window.open(
+                                `https://opensea.io/assets/ethereum/${nft.contractAddress}/${nft.tokenId}`,
+                                "_blank",
+                              )
+                            }
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View on OpenSea
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {nft.status === "pending" && (
+                      <div className="w-full text-center">
+                        <div className="flex items-center justify-center gap-1 text-yellow-400">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm">Processing...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {nftRewards.length === 0 && (
+            <div className="text-center py-8">
+              <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-400 opacity-50" />
+              <h3 className="text-lg font-semibold text-white mb-2">No NFT Rewards Yet</h3>
+              <p className="text-gray-400">Complete special challenges to earn exclusive NFTs!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
-
-export { RewardDistribution }
-export default RewardDistribution

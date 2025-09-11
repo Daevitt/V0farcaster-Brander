@@ -326,65 +326,65 @@ export function ActionTracker({ userFid, username }: ActionTrackerProps) {
                 return (
                   <div
                     key={action.id}
-                    className="flex items-center justify-between p-4 bg-black/30 rounded-lg border border-purple-500/10"
+                    className="flex items-start gap-3 p-4 bg-black/30 rounded-lg border border-purple-500/10 overflow-hidden"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                        <ActionIcon className="w-5 h-5 text-white" />
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-white font-medium capitalize">{action.type}</h4>
-                          <Badge variant="secondary" className={getStatusColor(status.status)}>
-                            {status.status}
-                          </Badge>
-                        </div>
-                        <p className="text-gray-400 text-sm">{action.description}</p>
-                        {action.targetUrl && (
-                          <p className="text-blue-400 text-xs truncate max-w-xs">{action.targetUrl}</p>
-                        )}
-                        {action.targetUser && <p className="text-blue-400 text-xs">@{action.targetUser}</p>}
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-white font-semibold">+{action.points}</div>
-                        <div className="text-gray-400 text-xs">points</div>
-                      </div>
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <ActionIcon className="w-5 h-5 text-white" />
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {status.status === "pending" && (
-                        <div className="flex items-center gap-2 text-yellow-400">
-                          <Clock className="w-4 h-4 animate-pulse" />
-                          <span className="text-xs">Verifying...</span>
-                        </div>
-                      )}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-white font-medium capitalize">{action.type}</h4>
+                        <Badge variant="secondary" className={getStatusColor(status.status)}>
+                          {status.status}
+                        </Badge>
+                      </div>
 
-                      {status.status === "completed" && (
-                        <div className="flex items-center gap-2 text-green-400">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-xs">Completed</span>
-                        </div>
-                      )}
+                      <p className="text-gray-400 text-sm">{action.description}</p>
 
-                      {status.status === "failed" && (
-                        <div className="flex items-center gap-2 text-red-400">
-                          <AlertCircle className="w-4 h-4" />
-                          <span className="text-xs">Failed</span>
-                        </div>
-                      )}
+                      {action.targetUrl && <p className="text-blue-400 text-xs truncate">{action.targetUrl}</p>}
+                      {action.targetUser && <p className="text-blue-400 text-xs">@{action.targetUser}</p>}
+                    </div>
 
-                      {status.status === "available" && (
-                        <Button
-                          onClick={() => performAction(action.id)}
-                          size="sm"
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          Start
-                        </Button>
-                      )}
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0 min-w-0">
+                      <div className="text-right">
+                        <div className="text-white font-semibold text-sm">+{action.points}</div>
+                        <div className="text-gray-400 text-xs">points</div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {status.status === "pending" && (
+                          <div className="flex items-center gap-1 text-yellow-400">
+                            <Clock className="w-3 h-3 animate-pulse" />
+                            <span className="text-xs hidden sm:inline">Verifying...</span>
+                          </div>
+                        )}
+
+                        {status.status === "completed" && (
+                          <div className="flex items-center gap-1 text-green-400">
+                            <CheckCircle className="w-3 h-3" />
+                            <span className="text-xs hidden sm:inline">Completed</span>
+                          </div>
+                        )}
+
+                        {status.status === "failed" && (
+                          <div className="flex items-center gap-1 text-red-400">
+                            <AlertCircle className="w-3 h-3" />
+                            <span className="text-xs hidden sm:inline">Failed</span>
+                          </div>
+                        )}
+
+                        {status.status === "available" && (
+                          <Button
+                            onClick={() => performAction(action.id)}
+                            size="sm"
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-xs px-2 py-1 h-auto"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            <span className="hidden sm:inline">Start</span>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

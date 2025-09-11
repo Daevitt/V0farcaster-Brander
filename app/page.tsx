@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Wallet, Trophy, Users, ArrowRight, Star, Plus, BarChart3, Gift, Settings } from "lucide-react"
 import { CreateListModal } from "@/components/create-list-modal"
 import { useRouter } from "next/navigation"
-import { sdk } from "@farcaster/miniapp-sdk"
 
 declare global {
   interface Window {
@@ -35,20 +34,6 @@ export default function FarcasterMiniapp() {
   const isSuperAdmin = (fid: number) => fid === 12345 // Replace with real super admin list
 
   useEffect(() => {
-    const initializeFarcasterSDK = async () => {
-      try {
-        // Initialize the Farcaster Mini App SDK
-        await sdk.actions.ready()
-        console.log("[v0] Farcaster Mini App SDK initialized successfully")
-      } catch (error) {
-        console.error("[v0] Failed to initialize Farcaster SDK:", error)
-      }
-    }
-
-    initializeFarcasterSDK()
-  }, [])
-
-  useEffect(() => {
     const savedUser = localStorage.getItem("farcaster_user")
     if (savedUser) {
       setUser(JSON.parse(savedUser))
@@ -59,27 +44,11 @@ export default function FarcasterMiniapp() {
     setIsConnecting(true)
     try {
       if (typeof window !== "undefined") {
-        // For Farcaster Frame authentication
-        const frameData = {
-          untrustedData: {
-            fid: Math.floor(Math.random() * 100000), // This would come from real Frame data
-            url: window.location.href,
-            messageHash: "0x" + Math.random().toString(16).substr(2, 8),
-            timestamp: Date.now(),
-            network: 1,
-            buttonIndex: 1,
-            castId: {
-              fid: Math.floor(Math.random() * 100000),
-              hash: "0x" + Math.random().toString(16).substr(2, 8),
-            },
-          },
-        }
-
         const mockUser: FarcasterUser = {
-          fid: frameData.untrustedData.fid,
-          displayName: `User ${frameData.untrustedData.fid}`,
-          username: `user${frameData.untrustedData.fid}`,
-          pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${frameData.untrustedData.fid}`,
+          fid: 12345,
+          displayName: "Daevitt",
+          username: "daevitt",
+          pfpUrl: "/images/daevitt-profile.png",
           walletAddress: undefined,
         }
 
