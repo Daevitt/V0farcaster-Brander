@@ -1,0 +1,73 @@
+"use client"
+
+import { RewardDistribution } from "@/components/reward-distribution"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Gift } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { FarcasterAuth, type FarcasterUser } from "@/lib/farcaster-auth"
+
+export default function RewardsPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<FarcasterUser | null>(null)
+  const farcasterAuth = FarcasterAuth.getInstance()
+
+  useEffect(() => {
+    const currentUser = farcasterAuth.getCurrentUser()
+    if (!currentUser) {
+      router.push("/")
+      return
+    }
+    setUser(currentUser)
+  }, [router, farcasterAuth])
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="absolute inset-0 bg-[url('/abstract-geometric-pattern.png')] opacity-10"></div>
+
+      {/* Header */}
+      <header className="relative z-10 border-b border-purple-500/20 bg-black/20 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/")}
+              className="text-purple-300 hover:text-white hover:bg-purple-500/20"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <Gift className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  My Rewards
+                </h1>
+                <p className="text-gray-400 text-sm">Manage your earned tokens and NFTs</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative z-10 container mx-auto px-4 py-8">
+        <RewardDistribution userFid={user.fid.toString()} username={user.username} />
+      </main>
+    </div>
+  )
+}
