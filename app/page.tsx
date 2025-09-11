@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Wallet, Trophy, Users, ArrowRight, Star, Plus, BarChart3, Gift, Settings } from "lucide-react"
 import { CreateListModal } from "@/components/create-list-modal"
 import { useRouter } from "next/navigation"
+import { sdk } from "@farcaster/miniapp-sdk";
 
 declare global {
   interface Window {
@@ -32,7 +33,18 @@ export default function FarcasterMiniapp() {
 
   const isAdmin = (fid: number) => fid === 12345 // Replace with real admin list
   const isSuperAdmin = (fid: number) => fid === 12345 // Replace with real super admin list
-
+  
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await sdk.actions.ready(); // quita el splash
+      } catch (err) {
+        console.error("Error calling sdk.actions.ready()", err);
+      }
+    };
+    init();
+  }, []);
+  
   useEffect(() => {
     const savedUser = localStorage.getItem("farcaster_user")
     if (savedUser) {
