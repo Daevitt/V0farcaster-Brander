@@ -7,26 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Wallet, Trophy, Users, ArrowRight, Star, Plus, BarChart3, Gift, Settings } from "lucide-react"
 import { CreateListModal } from "@/components/create-list-modal"
 import { useRouter } from "next/navigation"
+import { sdk } from "@farcaster/miniapp-sdk"
 
 declare global {
   interface Window {
     ethereum?: any
-    // Add Farcaster SDK types
-    sdk?: {
-      actions: {
-        ready: () => void
-        openUrl: (url: string) => void
-        close: () => void
-      }
-      context: {
-        user: {
-          fid: number
-          displayName: string
-          username: string
-          pfpUrl: string
-        }
-      }
-    }
   }
 }
 
@@ -44,120 +29,62 @@ export default function FarcasterMiniapp() {
   const [walletConnected, setWalletConnected] = useState(false)
   const [showCreateList, setShowCreateList] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
-  const [isFarcasterFrame, setIsFarcasterFrame] = useState(false)
   const router = useRouter()
 
   const isAdmin = (fid: number) => fid === 12345 // Replace with real admin list
   const isSuperAdmin = (fid: number) => fid === 12345 // Replace with real super admin list
 
-  // Initialize Farcaster SDK
   useEffect(() => {
-    const initializeFarcasterSDK = () => {
-      // Check if we're running inside a Farcaster frame
-      if (typeof window !== "undefined") {
-        // Check for Farcaster SDK
-        if (window.sdk?.actions?.ready) {
-          console.log("[Farcaster] SDK detected, calling ready()")
-          setIsFarcasterFrame(true)
-          
-          // Call the ready function to dismiss the warning
-          window.sdk.actions.ready()
-          
-          // Try to get user data from SDK context
-          if (window.sdk.context?.user) {
-            const farcasterUser: FarcasterUser = {
-              fid: window.sdk.context.user.fid,
-              displayName: window.sdk.context.user.displayName,
-              username: window.sdk.context.user.username,
-              pfpUrl: window.sdk.context.user.pfpUrl,
-            }
-            setUser(farcasterUser)
-            localStorage.setItem("farcaster_user", JSON.stringify(farcasterUser))
-          }
-        } else {
-          // Fallback: try to detect frame context from URL or other indicators
-          const urlParams = new URLSearchParams(window.location.search)
-          const isFrame = urlParams.has('frame') || 
-                         window.location.pathname.includes('/frame') ||
-                         window.parent !== window // Running in iframe
-          
-          if (isFrame) {
-            console.log("[Farcaster] Frame context detected but SDK not available")
-            setIsFarcasterFrame(true)
-            
-            // If SDK becomes available later, call ready
-            const checkSDK = setInterval(() => {
-              if (window.sdk?.actions?.ready) {
-                console.log("[Farcaster] SDK became available, calling ready()")
-                window.sdk.actions.ready()
-                clearInterval(checkSDK)
-              }
-            }, 100)
-            
-            // Clear interval after 5 seconds to avoid infinite checking
-            setTimeout(() => clearInterval(checkSDK), 5000)
-          }
-        }
+    const initializeFarcasterSDK = async () => {
+      try {
+        // Initialize the Farcaster Mini App SDK
+        await sdk.actions.ready()
+        console.log("[v0] Farcaster Mini App SDK initialized successfully")
+      } catch (error) {
+        console.error("[v0] Failed to initialize Farcaster SDK:", error)
       }
     }
 
-    // Initialize immediately
     initializeFarcasterSDK()
+  }, [])
 
-    // Also try after a short delay in case SDK loads asynchronously
-    const timeoutId = setTimeout(initializeFarcasterSDK, 1000)
-
-    // Check for saved user data
+  useEffect(() => {
     const savedUser = localStorage.getItem("farcaster_user")
-    if (savedUser && !user) {
+    if (savedUser) {
       setUser(JSON.parse(savedUser))
     }
-
-    return () => clearTimeout(timeoutId)
-  }, [user])
+  }, [])
 
   const connectFarcaster = async () => {
     setIsConnecting(true)
     try {
       if (typeof window !== "undefined") {
-        // First try to use real Farcaster SDK if available
-        if (window.sdk?.context?.user) {
-          const farcasterUser: FarcasterUser = {
-            fid: window.sdk.context.user.fid,
-            displayName: window.sdk.context.user.displayName,
-            username: window.sdk.context.user.username,
-            pfpUrl: window.sdk.context.user.pfpUrl,
-          }
-          setUser(farcasterUser)
-          localStorage.setItem("farcaster_user", JSON.stringify(farcasterUser))
-        } else {
-          // Fallback to mock data for development/testing
-          const frameData = {
-            untrustedData: {
+        // For Farcaster Frame authentication
+        const frameData = {
+          untrustedData: {
+            fid: Math.floor(Math.random() * 100000), // This would come from real Frame data
+            url: window.location.href,
+            messageHash: "0x" + Math.random().toString(16).substr(2, 8),
+            timestamp: Date.now(),
+            network: 1,
+            buttonIndex: 1,
+            castId: {
               fid: Math.floor(Math.random() * 100000),
-              url: window.location.href,
-              messageHash: "0x" + Math.random().toString(16).substr(2, 8),
-              timestamp: Date.now(),
-              network: 1,
-              buttonIndex: 1,
-              castId: {
-                fid: Math.floor(Math.random() * 100000),
-                hash: "0x" + Math.random().toString(16).substr(2, 8),
-              },
+              hash: "0x" + Math.random().toString(16).substr(2, 8),
             },
-          }
-
-          const mockUser: FarcasterUser = {
-            fid: frameData.untrustedData.fid,
-            displayName: `User ${frameData.untrustedData.fid}`,
-            username: `user${frameData.untrustedData.fid}`,
-            pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${frameData.untrustedData.fid}`,
-            walletAddress: undefined,
-          }
-
-          setUser(mockUser)
-          localStorage.setItem("farcaster_user", JSON.stringify(mockUser))
+          },
         }
+
+        const mockUser: FarcasterUser = {
+          fid: frameData.untrustedData.fid,
+          displayName: `User ${frameData.untrustedData.fid}`,
+          username: `user${frameData.untrustedData.fid}`,
+          pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${frameData.untrustedData.fid}`,
+          walletAddress: undefined,
+        }
+
+        setUser(mockUser)
+        localStorage.setItem("farcaster_user", JSON.stringify(mockUser))
       }
     } catch (error) {
       console.error("Farcaster connection failed:", error)
@@ -189,18 +116,6 @@ export default function FarcasterMiniapp() {
     } else {
       setShowDashboard(true)
     }
-  }
-
-  // Show frame-optimized loading state if in Farcaster frame
-  if (isFarcasterFrame && !user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
-          <p className="text-white">Loading Farcaster data...</p>
-        </div>
-      </div>
-    )
   }
 
   if (!user) {
